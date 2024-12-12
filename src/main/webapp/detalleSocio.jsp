@@ -1,128 +1,71 @@
-<%@page import="java.sql.*"%>
-<%@page contentType="text/html" pageEncoding="UTF-8"%>
-<!DOCTYPE html>
+<%@ page import="java.sql.*" %>
 <html>
 <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <title>Detalle Socio</title>
 </head>
 <body>
-<h1>Detalle Socio</h1>
-<%
+<h2>Detalle del Socio</h2>
 
-    //CÓDIGO DE VALIDACIÓN
-    boolean valida = true;
-    int socioID = -1;
+<%
+    // Variables para la conexión a la base de datos
+    String dbURL = "jdbc:mysql://localhost:3306/baloncesto";
+    String dbUser = "root";
+    String dbPassword = "secret";
+    Connection conexion = null;
+
     try {
-        socioID = Integer.parseInt(request.getParameter("socioID"));
-    } catch (Exception ex) {
-        ex.printStackTrace();
-        valida = false;
-    }
-    //FIN CÓDIGO DE VALIDACIÓN
-
-    if (valida) {
-
-        //CARGA DEL DRIVER Y PREPARACIÓN DE LA CONEXIÓN CON LA BBDD
-        //						v---------UTILIZAMOS LA VERSIÓN MODERNA DE LLAMADA AL DRIVER, no deprecado
+        // Cargamos el driver JDBC de MySQL
         Class.forName("com.mysql.cj.jdbc.Driver");
-        Connection conexion = DriverManager.getConnection("jdbc:mysql://localhost:3306/baloncesto", "root", "user");
+        conexion = DriverManager.getConnection(dbURL, dbUser, dbPassword);
 
-        Connection conn = null;
-        PreparedStatement ps = null;
-     	ResultSet rs = null;
+        // Comprobamos si la conexión se establece bien
+        if (conexion == null) {
+            out.println("Error al conectar a la base de datos");
+        } else {
+            // Obtenemos el parámetro socioID de la URL
+            int socioID = Integer.parseInt(request.getParameter("socioID"));
+            String query = "SELECT * FROM socio WHERE socioID = ?";
 
-        try {
+            // Preparamos la consulta
+            PreparedStatement stmt = conexion.prepareStatement(query);
+            stmt.setInt(1, socioID);
 
-            //CARGA DEL DRIVER Y PREPARACIÓN DE LA CONEXIÓN CON LA BBDD
-            //						v---------UTILIZAMOS LA VERSIÓN MODERNA DE LLAMADA AL DRIVER, no deprecado
-            Class.forName("com.mysql.cj.jdbc.Driver");
-            conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/baloncesto", "root", "user");
+            // Ejecutamos la consulta
+            ResultSet rs = stmt.executeQuery();
 
-
-//>>>>>>NO UTILIZAR STATEMENT EN QUERIES PARAMETRIZADAS
-//       Statement s = conexion.createStatement();
-//       String insercion = "INSERT INTO socio VALUES (" + Integer.valueOf(request.getParameter("numero"))
-//                          + ", '" + request.getParameter("nombre")
-//                          + "', " + Integer.valueOf(request.getParameter("estatura"))
-//                          + ", " + Integer.valueOf(request.getParameter("edad"))
-//                          + ", '" + request.getParameter("localidad") + "')";
-//       s.execute(insercion);
-//<<<<<<
-
-            //
-            String sql = "SELECT * FROM socio WHERE socioID = ?"; //socioID
-
-            ps = conn.prepareStatement(sql);
-            //int idx = 1;
-            //ps.setInt(idx++, socioID);
-            ps.setInt(1, socioID);
-
-
-            rs = ps.executeQuery();
-
+            // Mostramos los resultados si existen
             if (rs.next()) {
-
-                int numSocio = rs.getInt("socioID");
-                String nombre = rs.getString("nombre");
-                int estatura = rs.getInt("estatura");
-                int edad = rs.getInt("edad");
-                String localidad = rs.getString("localidad");
-
-                //System.out.println();
-
-                %>
-
-    <table>
-        <tr>
-            <td>
-                SocioID
-            </td>
-            <td>
-                <%= numSocio%>
-            </td>
-        </tr>
-        <tr>
-            <td>
-                Nombre
-            </td>
-            <td>
-                <%= nombre%>
-            </td>
-        </tr>
-    </table>
-
-
-<%
-
-            } else {
-
-                %>
-                    <span>No existe socio con id <%=socioID %></span>
-                <%
-            }
-
-
-        } catch (Exception ex) {
-            ex.printStackTrace();
-        } finally {
-            //BLOQUE FINALLY PARA CERRAR LA CONEXIÓN CON PROTECCIÓN DE try-catch
-            //SIEMPRE HAY QUE CERRAR LOS ELEMENTOS DE LA  CONEXIÓN DESPUÉS DE UTILIZARLOS
-            try { rs.close(); } catch (Exception e) { /* Ignored */ }
-            try {
-                ps.close();
-            } catch (Exception e) { /* Ignored */ }
-            try {
-                conn.close();
-            } catch (Exception e) { /* Ignored */ }
-        }
-
-
-    } else {
-        //NO HAY VALIDACIÓN
-                out.println("Error de validación!");
-    }
-
 %>
+<table>
+    <tr><th>Código</th><td><%= rs.getInt("socioID") %></td></tr>
+    <tr><th>Nombre</th><td><%= rs.getString("nombre") %></td></tr>
+    <tr><th>Estatura</th><td><%= rs.getInt("estatura") %></td></tr>
+    <tr><th>Edad</th><td><%= rs.getInt("edad") %></td></tr>
+    <tr><th>Localidad</th><td><%= rs.getString("localidad") %></td></tr>
+</table>
+<%
+} else {
+%>
+<p>No se encontró el socio con el ID especificado.</p>
+<%
+            }
+            rs.close();
+            stmt.close();
+        }
+    } catch (Exception e) {
+        out.println("Error: " + e.getMessage());
+    } finally {
+        //Si vemos que la conexion va bien cerramos la conexion
+        if (conexion != null) {
+            try {
+                conexion.close();
+            } catch (SQLException e) {
+                out.println("Error!!  cerrando la conexión: " + e.getMessage());
+            }
+        }
+    }
+%>
+
+<a href="index.jsp">Volver al inicio</a>
 </body>
 </html>
